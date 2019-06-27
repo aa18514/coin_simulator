@@ -35,7 +35,7 @@ def flip(epsilon:float=2**-10)->float:
 
     encoding = 0
     for i in range(number_of_flips):
-        encoding = encoding + ((2**i) * flip_unbiased())
+        encoding = encoding + (flip_unbiased() << i)
     
     r = FAIL
     if encoding < (combinations - F)/3:
