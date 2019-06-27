@@ -26,8 +26,7 @@ def flip(epsilon:float=2**-10)->float:
         print(e)
     
     combinations = 2**number_of_flips
-    
-    F = 0
+
     if (combinations - 1) % 3 == 0:
         F = 1
     elif (combinations - 2) % 3 == 0:
@@ -44,7 +43,6 @@ def flip(epsilon:float=2**-10)->float:
         r = 0
     assert((F/combinations) <= epsilon)
     #print("P[r = FAIL] + {}".format(F/combinations))
-
     return r
 
 
