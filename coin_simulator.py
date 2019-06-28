@@ -1,5 +1,8 @@
 import numpy as np
 import random
+from fractions import Fraction
+import matplotlib.pyplot as plt
+
 
 FAIL = 2
 
@@ -12,38 +15,45 @@ def flip_unbiased():
    return value
 
 
-def flip(epsilon:float=2**-10)->float:
+def generate_fail(combinations, frac):
+    F = 0
+    while ((frac.numerator * (combinations - F)) % \
+            frac.denominator) != 0:
+        F = F + 1
+    return F
+
+
+def flip(epsilon:float=0.0001, proba=Fraction(5, 6))->(float, float):
     '''
+    choose delta number of flips above np.ceil(1-log2(epsilon))
     return r <= {0, 1, FAIL} that satisfies the following properties:
     1. P[r = FAIL] < epsilon
     2. P[r = 1 | r != FAIL] = 1/3
-    '''
-    number_of_flips = np.ceil(1 - np.log2(epsilon))
-    
-    try:
-        number_of_flips = int(number_of_flips)
-    except Exception as e:
-        print(e)
-    
-    combinations = 2**number_of_flips
-
-    if (combinations - 1) % 3 == 0:
-        F = 1
-    elif (combinations - 2) % 3 == 0:
-        F = 2
-
+    ''' 
+    flips = int(np.ceil(2-np.log2(epsilon)))
+    combinations = 2**flips
+    F = generate_fail(combinations, proba)
+    while F/combinations >= epsilon:
+        flips = flips + 1
+        combinations = 2**flips
+        F = generate_fail(combinations, proba)
+        assert((proba.numerator * (combinations - F)) %\
+                proba.denominator == 0)
     encoding = 0
-    for i in range(number_of_flips):
+    for i in range(flips):
         encoding = encoding + (flip_unbiased() << i)
-    
     r = FAIL
-    if encoding < (combinations - F)/3:
+    if encoding < (proba.numerator * (combinations - F))/\
+            proba.denominator:
         r = 1
     elif encoding < (combinations - F):
         r = 0
     assert((F/combinations) <= epsilon)
-    #print("P[r = FAIL] + {}".format(F/combinations))
-    return r
+    error = ((proba.numerator * (combinations - F))/proba.denominator)/\
+            combinations
+    error = (proba.numerator/proba.denominator) - error
+    return error, r
+
 
 
 if __name__ == "__main__":
@@ -53,18 +63,24 @@ if __name__ == "__main__":
     1. P[r = FAIL] < epsilon
     2. P[r = 1 | r != FAIL] = 1/3
     '''
-    experiments = 10000
-    ones = 0
-    zeros = 0
-    fail = 0
-    for experiment in range(experiments):
-        r = flip()
-        if r == 1:
-            ones = ones + 1
-        elif r == 0:
-            zeros = zeros + 1
-        elif r == FAIL:
-            fail = fail + 1
-    print("P[r = FAIL] = {:.6f}".format(fail/experiments))
-    print("P[r = 1] = {:.6f}".format(ones/experiments))
-    print("P[r = 0] = {:.6f}".format(zeros/experiments))
+    experiments = 1
+    epsilon = np.arange(1e-10, 1e-1, 1e-6)
+    errors = []
+    f = Fraction(5, 6)
+    for e in epsilon:
+        ones = 0
+        zeros = 0
+        fail = 0
+        for experiment in range(experiments):
+            error, r = flip(e, f)
+            if r == 1:
+                ones = ones + 1
+            elif r == 0:
+                zeros = zeros + 1
+            elif r == FAIL:
+                fail = fail + 1
+        errors.append(error)
+    plt.xlabel('epsilon')
+    plt.ylabel('errors')
+    plt.plot(epsilon, errors)
+    plt.show()
